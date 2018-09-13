@@ -481,6 +481,23 @@ suite('Component', function () {
       assert.equal(data.el.constructor, HTMLHeadElement);
       assert.equal(data.el, el.components.dummy.attrValue.el);
     });
+
+    test('updates data when combining setAttribute and object3D manipulation', function () {
+      var el = document.createElement('a-entity');
+      el.hasLoaded = true;
+      el.setAttribute('position', '3 3 3');
+      assert.equal(3, el.object3D.position.x);
+      assert.equal(3, el.object3D.position.y);
+      assert.equal(3, el.object3D.position.z);
+      el.object3D.position.set(5, 5, 5);
+      assert.equal(5, el.object3D.position.x);
+      assert.equal(5, el.object3D.position.y);
+      assert.equal(5, el.object3D.position.z);
+      el.setAttribute('position', '3 3 3');
+      assert.equal(3, el.object3D.position.x);
+      assert.equal(3, el.object3D.position.y);
+      assert.equal(3, el.object3D.position.z);
+    });
   });
 
   suite('resetProperty', function () {
@@ -546,6 +563,12 @@ suite('Component', function () {
         registerComponent('my__component', CloneComponent);
       }, Error);
       assert.notOk('my__component' in components);
+    });
+
+    test('can have underscore in component id', function () {
+      AFRAME.registerComponent('test', {multiple: true});
+      el.setAttribute('test__foo__bar', '');
+      assert.equal(el.components['test__foo__bar'].id, 'foo__bar');
     });
   });
 
@@ -1000,7 +1023,7 @@ suite('registerComponent warnings', function () {
 
   setup(function (done) {
     var el = entityFactory();
-    el.addEventListener('loaded', function () {
+    setTimeout(() => {
       sceneEl = el.sceneEl;
       script = document.createElement('script');
       script.innerHTML = `AFRAME.registerComponent('testorder', {});`;
@@ -1011,7 +1034,7 @@ suite('registerComponent warnings', function () {
   teardown(function () {
     delete AFRAME.components.testorder;
     delete Component.registrationOrderWarnings.testorder;
-    if (script.parentNode) { script.parentNode.removeChild(script); }
+    if (script && script.parentNode) { script.parentNode.removeChild(script); }
   });
 
   test('does not throw warning if component registered in head', function (done) {

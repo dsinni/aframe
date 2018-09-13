@@ -1,9 +1,9 @@
 ---
-title: "3D Models"
+title: 3D Models
 type: introduction
 layout: docs
 parent_section: introduction
-order: 8.75
+order: 10
 examples: []
 ---
 
@@ -56,6 +56,9 @@ Places to find 3D models include:
 
 Programs to create models include:
 
+- [Supercraft](https://supermedium.com/supercraft/) - Built **with** A-Frame to
+  model directly within VR with no modeling skill required and load with
+  [`aframe-supercraft-loader`](https://www.npmjs.com/package/aframe-supercraft-loader).
 - [Blender](https://www.blender.org/)
 - [MagicaVoxel](https://ephtracy.github.io/)
 - [Autodesk Maya](https://www.autodesk.com/products/maya/overview) or [Maya LT](https://www.autodesk.com/products/maya-lt/overview)
@@ -99,6 +102,8 @@ model or `.mtl` file.
 1. Open the model (or .mtl if you're doing OBJ) in a plain text editor
 2. Search for the name of your texture (e.g., `texture.jpg`)
 3. Fix the path to the texture by making it relative instead of absolute
+
+If this didn't work, you should check your MTL file and you might notice it is trying to use TGA or some other sort of textures that aren't plain images. In this case, you need to include additional three.js loaders. However it might be easier to try converting all the TGAs to just use images like PNGs using a converter, and replace all instances of 'tga' with 'png'.
 
 ### My Model Isn't Animating
 

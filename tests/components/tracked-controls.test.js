@@ -13,29 +13,31 @@ suite('tracked-controls', function () {
   setup(function (done) {
     standingMatrix.identity();
     el = entityFactory();
-    el.setAttribute('position', '');
-    el.setAttribute('tracked-controls', '');
-    el.addEventListener('loaded', function () {
-      el.parentNode.renderer.vr.getStandingMatrix = function () {
-        return standingMatrix;
-      };
-      component = el.components['tracked-controls'];
-      system = component.system;
-      controller = {
-        id: 'OpenVR Gamepad',
-        pose: {
-          position: [0, 0, 0],
-          orientation: [0, 0, 0, 1]
-        },
-        buttons: [
-          {pressed: false, touched: false, value: 0},
-          {pressed: false, touched: false, value: 0}
-        ],
-        axes: [0, 0, 0]
-      };
-      system.controllers = [controller];
-      el.setAttribute('tracked-controls', 'id', 'OpenVR Gamepad');
-      done();
+    setTimeout(() => {
+      el.setAttribute('position', '');
+      el.setAttribute('tracked-controls', '');
+      el.sceneEl.addEventListener('loaded', function () {
+        el.parentNode.renderer.vr.getStandingMatrix = function () {
+          return standingMatrix;
+        };
+        component = el.components['tracked-controls'];
+        system = component.system;
+        controller = {
+          id: 'OpenVR Gamepad',
+          pose: {
+            position: [0, 0, 0],
+            orientation: [0, 0, 0, 1]
+          },
+          buttons: [
+            {pressed: false, touched: false, value: 0},
+            {pressed: false, touched: false, value: 0}
+          ],
+          axes: [0, 0, 0]
+        };
+        system.controllers = [controller];
+        el.setAttribute('tracked-controls', 'id', 'OpenVR Gamepad');
+        done();
+      });
     });
   });
 
@@ -421,6 +423,7 @@ suite('tracked-controls', function () {
     test('emits buttonup if button released', function () {
       const emitSpy = sinon.spy(el, 'emit');
       component.buttonStates[1] = {pressed: true, touched: false, value: 1};
+      component.buttonEventDetails[1] = {id: 1, state: component.buttonStates[1]};
       controller.buttons[1].pressed = false;
       controller.buttons[1].value = 0;
       component.tick();
@@ -477,6 +480,7 @@ suite('tracked-controls', function () {
     test('emits touchend if button no longer touched', function () {
       const emitSpy = sinon.spy(el, 'emit');
       component.buttonStates[1] = {pressed: false, touched: true, value: 1};
+      component.buttonEventDetails[1] = {id: 1, state: component.buttonStates[1]};
       controller.buttons[1].touched = false;
       controller.buttons[1].value = 0;
       component.tick();

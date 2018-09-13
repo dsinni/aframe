@@ -1,11 +1,8 @@
 var vrDisplay;
-var polyfilledVRDisplay;
-var POLYFILL_VRDISPLAY_ID = 'Cardboard VRDisplay';
 
 if (navigator.getVRDisplays) {
   navigator.getVRDisplays().then(function (displays) {
     vrDisplay = displays.length && displays[0];
-    polyfilledVRDisplay = vrDisplay.displayName === POLYFILL_VRDISPLAY_ID;
   });
 }
 
@@ -68,6 +65,14 @@ function isGearVR () {
 }
 module.exports.isGearVR = isGearVR;
 
+/**
+ *  Detect Oculus Go device
+ */
+function isOculusGo () {
+  return /Pacific Build.+OculusBrowser.+SamsungBrowser.+Mobile VR/i.test(window.navigator.userAgent);
+}
+module.exports.isOculusGo = isOculusGo;
+
 function isR7 () {
   return /R7 Build/.test(window.navigator.userAgent);
 }
@@ -109,10 +114,11 @@ module.exports.isNodeEnvironment = !module.exports.isBrowserEnvironment;
  */
 module.exports.PolyfillControls = function PolyfillControls (object) {
   var frameData;
+  var vrDisplay = window.webvrpolyfill.getPolyfillDisplays()[0];
   if (window.VRFrameData) { frameData = new window.VRFrameData(); }
   this.update = function () {
     var pose;
-    if (!vrDisplay || !polyfilledVRDisplay) { return; }
+    if (!vrDisplay) { return; }
     vrDisplay.getFrameData(frameData);
     pose = frameData.pose;
     if (pose.orientation !== null) {

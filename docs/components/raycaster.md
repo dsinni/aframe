@@ -41,7 +41,7 @@ AFRAME.registerComponent('collider-check', {
   dependencies: ['raycaster'],
 
   init: function () {
-    this.el.addEventListener('raycaster-intersected', function () {
+    this.el.addEventListener('raycaster-intersection', function () {
       console.log('Player hit something!');
     });
   }
@@ -55,7 +55,7 @@ AFRAME.registerComponent('collider-check', {
 | autoRefresh         | Whether to automatically refresh raycaster's list of objects to test for intersection using mutation observers to detect added or removed entities and components. | true          |
 | direction           | Vector3 coordinate of which direction the ray should point from relative to the entity's origin.                                                                   | 0, 0, 0       |
 | enabled             | Whether raycaster is actively checking for intersections.                                                                                                          | true          |
-| far                 | Maximum distance under which resulting entities are returned. Cannot be lower then `near`.                                                                         | Infinity      |
+| far                 | Maximum distance under which resulting entities are returned. Cannot be lower than `near`.                                                                         | Infinity      |
 | interval            | Number of milliseconds to wait in between each intersection test. Lower number is better for faster updates. Higher number is better for performance.              | 0           |
 | near                | Minimum distance over which resuilting entities are returned. Cannot be lower than 0.                                                                              | 0             |
 | objects             | Query selector to pick which objects to test for intersection. If not specified, all entities will be tested.                                                      | null          |
@@ -97,7 +97,7 @@ The event detail contains intersection objects. They are returned straight from
 | Member         | Description                                                                                                      |
 |----------------|------------------------------------------------------------------------------------------------------------------|
 | intersectedEls | Entities currently intersecting the raycaster.                                                                   |
-| objects        | three.js objects to test for intersections. Will be `scene.children` if not `objects` property is not specified. |
+| objects        | three.js objects to test for intersections. Will be `scene.children` if `objects` property is not specified. |
 | raycaster      | three.js raycaster object.                                                                                       |
 
 ## Methods
