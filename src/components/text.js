@@ -96,7 +96,7 @@ module.exports.Component = registerComponent('text', {
   },
 
   update: function (oldData) {
-    var data = coerceData(this.data);
+    var data = this.data;
     var font = this.currentFont;
 
     if (textures[data.font]) {
@@ -118,8 +118,8 @@ module.exports.Component = registerComponent('text', {
 
     // Update geometry and layout.
     if (font) {
-      this.updateGeometry(this.geometry, data, font);
-      this.updateLayout(data);
+      this.updateGeometry(this.geometry, font);
+      this.updateLayout();
     }
   },
 
@@ -208,7 +208,6 @@ module.exports.Component = registerComponent('text', {
     cache.get(fontSrc, function doLoadFont () {
       return loadFont(fontSrc, data.yOffset);
     }).then(function setFont (font) {
-      var coercedData;
       var fontImgSrc;
 
       if (font.pages.length !== 1) {
@@ -220,12 +219,11 @@ module.exports.Component = registerComponent('text', {
       }
 
       // Update geometry given font metrics.
-      coercedData = coerceData(data);
-      self.updateGeometry(geometry, self.data, font);
+      self.updateGeometry(geometry, font);
 
       // Set font and update layout.
       self.currentFont = font;
-      self.updateLayout(coercedData);
+      self.updateLayout();
 
       // Look up font image URL to use, and perform cached load.
       fontImgSrc = self.getFontImageSrc();
@@ -241,12 +239,12 @@ module.exports.Component = registerComponent('text', {
         self.mesh.visible = true;
         el.emit('textfontset', {font: data.font, fontObj: font});
       }).catch(function (err) {
-        error(err);
-        throw err;
+        error(err.message);
+        error(err.stack);
       });
     }).catch(function (err) {
-      error(err);
-      throw err;
+      error(err.message);
+      error(err.stack);
     });
   },
 
@@ -265,10 +263,11 @@ module.exports.Component = registerComponent('text', {
   /**
    * Update layout with anchor, alignment, baseline, and considering any meshes.
    */
-  updateLayout: function (data) {
+  updateLayout: function () {
     var anchor;
     var baseline;
     var el = this.el;
+    var data = this.data;
     var geometry = this.geometry;
     var geometryComponent;
     var height;
@@ -298,7 +297,7 @@ module.exports.Component = registerComponent('text', {
 
     // Update geometry dimensions to match text layout if width and height are set to 0.
     // For example, scales a plane to fit text.
-    if (geometryComponent) {
+    if (geometryComponent && geometryComponent.primitive === 'plane') {
       if (!geometryComponent.width) { el.setAttribute('geometry', 'width', width); }
       if (!geometryComponent.height) { el.setAttribute('geometry', 'height', height); }
     }
@@ -333,7 +332,6 @@ module.exports.Component = registerComponent('text', {
     // Place text slightly in front to avoid Z-fighting.
     mesh.position.z = data.zOffset;
     mesh.scale.set(textScale, -1 * textScale, textScale);
-    this.geometry.computeBoundingSphere();
   },
 
   /**
@@ -347,14 +345,26 @@ module.exports.Component = registerComponent('text', {
   /**
    * Update the text geometry using `three-bmfont-text.update`.
    */
-  updateGeometry: function (geometry, data, font) {
-    geometry.update(utils.extend({}, data, {
-      font: font,
-      width: computeWidth(data.wrapPixels, data.wrapCount, font.widthFactor),
-      text: data.value.toString().replace(/\\n/g, '\n').replace(/\\t/g, '\t'),
-      lineHeight: data.lineHeight || font.common.lineHeight
-    }));
-  }
+  updateGeometry: (function () {
+    var geometryUpdateBase = {};
+    var geometryUpdateData = {};
+    var newLineRegex = /\\n/g;
+    var tabRegex = /\\t/g;
+
+    return function (geometry, font) {
+      var data = this.data;
+
+      geometryUpdateData.font = font;
+      geometryUpdateData.lineHeight = data.lineHeight && isFinite(data.lineHeight)
+        ? data.lineHeight
+        : font.common.lineHeight;
+      geometryUpdateData.text = data.value.toString().replace(newLineRegex, '\n')
+                                                     .replace(tabRegex, '\t');
+      geometryUpdateData.width = computeWidth(data.wrapPixels, data.wrapCount,
+                                              font.widthFactor);
+      geometry.update(utils.extend(geometryUpdateBase, data, geometryUpdateData));
+    };
+  })()
 });
 
 /**
@@ -373,23 +383,6 @@ function parseSide (side) {
       return THREE.BackSide;
     }
   }
-}
-
-/**
- * Coerce some data to numbers.
- * as they will be passed directly into text creation and update
- */
-function coerceData (data) {
-  data = utils.clone(data);
-  if (data.lineHeight !== undefined) {
-    data.lineHeight = parseFloat(data.lineHeight);
-    if (!isFinite(data.lineHeight)) { data.lineHeight = undefined; }
-  }
-  if (data.width !== undefined) {
-    data.width = parseFloat(data.width);
-    if (!isFinite(data.width)) { data.width = undefined; }
-  }
-  return data;
 }
 
 /**

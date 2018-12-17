@@ -54,6 +54,8 @@ module.exports.Component = registerComponent('raycaster', {
     useWorldCoordinates: {default: false}
   },
 
+  multiple: true,
+
   init: function () {
     this.clearedIntersectedEls = [];
     this.unitLineEndVec3 = new THREE.Vector3();
@@ -109,7 +111,14 @@ module.exports.Component = registerComponent('raycaster', {
     }
 
     if (data.objects !== oldData.objects && !OBSERVER_SELECTOR_RE.test(data.objects)) {
-      warn('Selector "' + data.objects + '" may not update automatically with DOM changes.');
+      warn('[raycaster] Selector "' + data.objects +
+           '" may not update automatically with DOM changes.');
+    }
+
+    if (!data.objects) {
+      warn('[raycaster] For performance, please define raycaster.objects when using ' +
+           'raycaster or cursor components to whitelist which entities to intersect with. ' +
+           'e.g., raycaster="objects: [data-raycastable]".');
     }
 
     if (data.autoRefresh !== oldData.autoRefresh && el.isPlaying) {
@@ -168,7 +177,7 @@ module.exports.Component = registerComponent('raycaster', {
     // If objects not defined, intersect with everything.
     els = data.objects
       ? this.el.sceneEl.querySelectorAll(data.objects)
-      : this.el.sceneEl.children;
+      : this.el.sceneEl.querySelectorAll('*');
     this.objects = this.flattenObject3DMaps(els);
     this.dirty = false;
   },
@@ -179,6 +188,8 @@ module.exports.Component = registerComponent('raycaster', {
   tick: function (time) {
     var data = this.data;
     var prevCheckTime = this.prevCheckTime;
+
+    if (!data.enabled) { return; }
 
     // Only check for intersection if interval time has passed.
     if (prevCheckTime && (time - prevCheckTime < data.interval)) { return; }
@@ -203,8 +214,6 @@ module.exports.Component = registerComponent('raycaster', {
     var newIntersections = this.newIntersections;
     var prevIntersectedEls = this.prevIntersectedEls;
     var rawIntersections = this.rawIntersections;
-
-    if (!this.data.enabled) { return; }
 
     // Refresh the object whitelist if needed.
     if (this.dirty) { this.refreshObjects(); }
@@ -379,7 +388,7 @@ module.exports.Component = registerComponent('raycaster', {
    * so that non-recursive raycasting remains useful.
    *
    * Only push children defined as component attachemnts (e.g., setObject3D),
-   * not actual children in the scene graph hierarchy.
+   * NOT actual children in the scene graph hierarchy.
    *
    * @param  {Array<Element>} els
    * @return {Array<THREE.Object3D>}
@@ -392,7 +401,7 @@ module.exports.Component = registerComponent('raycaster', {
     // Push meshes and other attachments onto list of objects to intersect.
     objects.length = 0;
     for (i = 0; i < els.length; i++) {
-      if (els[i].object3D) {
+      if (els[i].isEntity && els[i].object3D) {
         for (key in els[i].object3DMap) {
           objects.push(els[i].getObject3D(key));
         }

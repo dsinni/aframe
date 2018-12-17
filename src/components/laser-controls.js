@@ -18,6 +18,7 @@ registerComponent('laser-controls', {
     el.setAttribute('oculus-go-controls', {hand: data.hand});
     el.setAttribute('oculus-touch-controls', {hand: data.hand});
     el.setAttribute('vive-controls', {hand: data.hand});
+    el.setAttribute('vive-focus-controls', {hand: data.hand});
     el.setAttribute('windows-motion-controls', {hand: data.hand});
 
     // Wait for controller to connect, or have a valid pointing pose, before creating ray
@@ -67,16 +68,16 @@ registerComponent('laser-controls', {
 
   config: {
     'daydream-controls': {
-      cursor: {downEvents: ['trackpaddown'], upEvents: ['trackpadup']}
+      cursor: {downEvents: ['trackpaddown', 'triggerdown'], upEvents: ['trackpadup', 'triggerup']}
     },
 
     'gearvr-controls': {
-      cursor: {downEvents: ['trackpaddown', 'triggerdown'], upEvents: ['trackpadup', 'triggerup']},
+      cursor: {downEvents: ['triggerdown'], upEvents: ['triggerup']},
       raycaster: {origin: {x: 0, y: 0.0005, z: 0}}
     },
 
     'oculus-go-controls': {
-      cursor: {downEvents: ['trackpaddown', 'triggerdown'], upEvents: ['trackpadup', 'triggerup']},
+      cursor: {downEvents: ['triggerdown'], upEvents: ['triggerup']},
       raycaster: {origin: {x: 0, y: 0.0005, z: 0}}
     },
 
@@ -87,6 +88,10 @@ registerComponent('laser-controls', {
 
     'vive-controls': {
       cursor: {downEvents: ['triggerdown'], upEvents: ['triggerup']}
+    },
+
+    'vive-focus-controls': {
+      cursor: {downEvents: ['trackpaddown', 'triggerdown'], upEvents: ['trackpadup', 'triggerup']}
     },
 
     'windows-motion-controls': {

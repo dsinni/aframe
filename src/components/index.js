@@ -24,8 +24,11 @@ require('./shadow');
 require('./sound');
 require('./text');
 require('./tracked-controls');
+require('./tracked-controls-webvr');
+require('./tracked-controls-webxr');
 require('./visible');
 require('./vive-controls');
+require('./vive-focus-controls');
 require('./wasd-controls');
 require('./windows-motion-controls');
 

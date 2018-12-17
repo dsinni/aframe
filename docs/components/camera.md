@@ -60,6 +60,9 @@ When exiting VR, the camera will restore its rotation to its rotation *before*
 it entered VR. This is so when we exit VR, the rotation of the camera is back
 to normal for a desktop screen.
 
+Far, near, fov, zoom properties only apply in 2D and magic window modes. 
+In VR mode the camera parameters are supplied by the WebVR / WebXR API to match IPD and headset FOV. Those aren't configurable. 
+
 ## Changing the Active Camera
 
 When the `active` property gets toggled, the component will notify the camera system
@@ -131,6 +134,6 @@ AFRAME.registerComponent('rotation-reader', {
       this.el.object3D.getWorldRotation(rotation);
       // position and rotation now contain vector and euler in world space.
     };
-  });
+  })
 });
 ```

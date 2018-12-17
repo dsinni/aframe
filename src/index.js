@@ -1,17 +1,30 @@
-// Check before the polyfill runs.
-window.hasNativeWebVRImplementation = !!window.navigator.getVRDisplays || !!window.navigator.getVRDevices;
+// Polyfill `Promise`.
+window.Promise = window.Promise || require('promise-polyfill');
 
 // WebVR polyfill
-var WebVRPolyfill = require('webvr-polyfill');
-window.webvrpolyfill = new WebVRPolyfill({
-  BUFFER_SCALE: 1,
-  CARDBOARD_UI_DISABLED: true,
-  ROTATE_INSTRUCTIONS_DISABLED: true
-});
+// Check before the polyfill runs.
+window.hasNativeWebVRImplementation = !!window.navigator.getVRDisplays ||
+                                      !!window.navigator.getVRDevices;
+window.hasNativeWebXRImplementation = navigator.xr !== undefined;
+
+// If WebXR is defined WebVRPolyfill does not initialize.
+if (!window.hasNativeWebXRImplementation) {
+  var isIOSOlderThan10 = require('./utils/isIOSOlderThan10');
+  // Workaround for iOS Safari canvas sizing issues in stereo (webvr-polyfill/issues/102).
+  // Only for iOS on versions older than 10.
+  var bufferScale = isIOSOlderThan10(window.navigator.userAgent) ? 1 / window.devicePixelRatio : 1;
+  var WebVRPolyfill = require('webvr-polyfill');
+  var polyfillConfig = {
+    BUFFER_SCALE: bufferScale,
+    CARDBOARD_UI_DISABLED: true,
+    ROTATE_INSTRUCTIONS_DISABLED: true
+  };
+  window.webvrpolyfill = new WebVRPolyfill(polyfillConfig);
+}
 
 var utils = require('./utils/');
-
 var debug = utils.debug;
+
 var error = debug('A-Frame:error');
 var warn = debug('A-Frame:warn');
 
@@ -29,15 +42,6 @@ if (window.location.protocol === 'file:') {
     'Assets, textures, and models WILL NOT WORK due to cross-origin policy! ' +
     'Please use a local or hosted server: ' +
     'https://aframe.io/docs/0.5.0/introduction/getting-started.html#using-a-local-server.');
-}
-
-// Polyfill `Promise`.
-window.Promise = window.Promise || require('promise-polyfill');
-
-// Workaround for iOS Safari canvas sizing issues in stereo (webvr-polyfill/issues/102).
-// Only for iOS on versions older than 10.
-if (utils.device.isIOSOlderThan10(window.navigator.userAgent)) {
-  window.WebVRConfig.BUFFER_SCALE = 1 / window.devicePixelRatio;
 }
 
 require('present'); // Polyfill `performance.now()`.
@@ -78,7 +82,7 @@ require('./core/a-mixin');
 require('./extras/components/');
 require('./extras/primitives/');
 
-console.log('A-Frame Version: 0.8.2 (Date 2018-09-13, Commit #86fcf8a)');
+console.log('A-Frame Version: 0.8.2 (Date 2018-12-16, Commit #3c4fff2)');
 console.log('three Version:', pkg.dependencies['three']);
 console.log('WebVR Polyfill Version:', pkg.dependencies['webvr-polyfill']);
 
