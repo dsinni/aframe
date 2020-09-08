@@ -7,8 +7,8 @@ window.hasNativeWebVRImplementation = !!window.navigator.getVRDisplays ||
                                       !!window.navigator.getVRDevices;
 window.hasNativeWebXRImplementation = navigator.xr !== undefined;
 
-// If WebXR is defined WebVRPolyfill does not initialize.
-if (!window.hasNativeWebXRImplementation) {
+// If native WebXR or WebVR are defined WebVRPolyfill does not initialize.
+if (!window.hasNativeWebXRImplementation && !window.hasNativeWebVRImplementation) {
   var isIOSOlderThan10 = require('./utils/isIOSOlderThan10');
   // Workaround for iOS Safari canvas sizing issues in stereo (webvr-polyfill/issues/102).
   // Only for iOS on versions older than 10.
@@ -17,13 +17,21 @@ if (!window.hasNativeWebXRImplementation) {
   var polyfillConfig = {
     BUFFER_SCALE: bufferScale,
     CARDBOARD_UI_DISABLED: true,
-    ROTATE_INSTRUCTIONS_DISABLED: true
+    ROTATE_INSTRUCTIONS_DISABLED: true,
+    MOBILE_WAKE_LOCK: !!window.cordova
   };
   window.webvrpolyfill = new WebVRPolyfill(polyfillConfig);
 }
 
 var utils = require('./utils/');
 var debug = utils.debug;
+
+if (utils.isIE11) {
+  // Polyfill `CustomEvent`.
+  require('custom-event-polyfill');
+  // Polyfill String.startsWith.
+  require('../vendor/starts-with-polyfill');
+}
 
 var error = debug('A-Frame:error');
 var warn = debug('A-Frame:warn');
@@ -36,7 +44,7 @@ if (window.document.currentScript && window.document.currentScript.parentNode !=
 }
 
 // Error if not using a server.
-if (window.location.protocol === 'file:') {
+if (!window.cordova && window.location.protocol === 'file:') {
   error(
     'This HTML file is currently being served via the file:// protocol. ' +
     'Assets, textures, and models WILL NOT WORK due to cross-origin policy! ' +
@@ -82,17 +90,19 @@ require('./core/a-mixin');
 require('./extras/components/');
 require('./extras/primitives/');
 
-console.log('A-Frame Version: 0.8.2 (Date 2018-12-16, Commit #3c4fff2)');
-console.log('three Version:', pkg.dependencies['three']);
+console.log('A-Frame Version: 1.0.4 (Date 2020-08-17, Commit #9ace681e)');
+console.log('THREE Version (https://github.com/supermedium/three.js):',
+            pkg.dependencies['super-three']);
 console.log('WebVR Polyfill Version:', pkg.dependencies['webvr-polyfill']);
 
 module.exports = window.AFRAME = {
   AComponent: require('./core/component').Component,
   AEntity: AEntity,
   ANode: ANode,
-  ANIME: require('animejs'),
+  ANIME: require('super-animejs'),
   AScene: AScene,
   components: components,
+  coreComponents: Object.keys(components),
   geometries: require('./core/geometry').geometries,
   registerComponent: registerComponent,
   registerElement: require('./core/a-register-element').registerElement,

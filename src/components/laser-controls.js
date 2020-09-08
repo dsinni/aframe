@@ -3,7 +3,9 @@ var utils = require('../utils/');
 
 registerComponent('laser-controls', {
   schema: {
-    hand: {default: 'right'}
+    hand: {default: 'right'},
+    model: {default: true},
+    defaultModelColor: {type: 'color', default: 'grey'}
   },
 
   init: function () {
@@ -11,15 +13,19 @@ registerComponent('laser-controls', {
     var data = this.data;
     var el = this.el;
     var self = this;
+    var controlsConfiguration = {hand: data.hand, model: data.model};
 
     // Set all controller models.
-    el.setAttribute('daydream-controls', {hand: data.hand});
-    el.setAttribute('gearvr-controls', {hand: data.hand});
-    el.setAttribute('oculus-go-controls', {hand: data.hand});
-    el.setAttribute('oculus-touch-controls', {hand: data.hand});
-    el.setAttribute('vive-controls', {hand: data.hand});
-    el.setAttribute('vive-focus-controls', {hand: data.hand});
-    el.setAttribute('windows-motion-controls', {hand: data.hand});
+    el.setAttribute('daydream-controls', controlsConfiguration);
+    el.setAttribute('gearvr-controls', controlsConfiguration);
+    el.setAttribute('magicleap-controls', controlsConfiguration);
+    el.setAttribute('oculus-go-controls', controlsConfiguration);
+    el.setAttribute('oculus-touch-controls', controlsConfiguration);
+    el.setAttribute('valve-index-controls', controlsConfiguration);
+    el.setAttribute('vive-controls', controlsConfiguration);
+    el.setAttribute('vive-focus-controls', controlsConfiguration);
+    el.setAttribute('windows-motion-controls', controlsConfiguration);
+    el.setAttribute('generic-tracked-controller-controls', controlsConfiguration);
 
     // Wait for controller to connect, or have a valid pointing pose, before creating ray
     el.addEventListener('controllerconnected', createRay);
@@ -73,7 +79,15 @@ registerComponent('laser-controls', {
 
     'gearvr-controls': {
       cursor: {downEvents: ['triggerdown'], upEvents: ['triggerup']},
-      raycaster: {origin: {x: 0, y: 0.0005, z: 0}}
+      raycaster: {origin: {x: 0, y: 0.0010, z: 0}}
+    },
+
+    'generic-tracked-controller-controls': {
+      cursor: {downEvents: ['triggerdown'], upEvents: ['triggerup']}
+    },
+
+    'magicleap-controls': {
+      cursor: {downEvents: ['trackpaddown', 'triggerdown'], upEvents: ['trackpadup', 'triggerup']}
     },
 
     'oculus-go-controls': {
@@ -84,6 +98,10 @@ registerComponent('laser-controls', {
     'oculus-touch-controls': {
       cursor: {downEvents: ['triggerdown'], upEvents: ['triggerup']},
       raycaster: {origin: {x: 0, y: 0, z: 0}}
+    },
+
+    'valve-index-controls': {
+      cursor: {downEvents: ['triggerdown'], upEvents: ['triggerup']}
     },
 
     'vive-controls': {

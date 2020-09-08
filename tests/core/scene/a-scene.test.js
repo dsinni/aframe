@@ -137,15 +137,21 @@ suite('a-scene (without renderer)', function () {
 
       // Stub renderer.
       sceneEl.renderer = {
-        vr: {
+        xr: {
           getDevice: function () {},
           setDevice: function () {},
           setPoseTarget: function () {}
-        }
+        },
+        getContext: function () { return undefined; },
+        setAnimationLoop: function () {},
+        setSize: function () {}
       };
 
       // mock camera
-      sceneEl.camera = {el: {object3D: {}}};
+      sceneEl.camera = {
+        el: {object3D: {}},
+        updateProjectionMatrix: function () {}
+      };
     });
 
     test('does not try to enter VR if already in VR', function (done) {
@@ -153,7 +159,7 @@ suite('a-scene (without renderer)', function () {
       sceneEl.addState('vr-mode');
       sceneEl.enterVR().then(function (val) {
         assert.equal(val, 'Already in VR.');
-        assert.notOk(sceneEl.renderer.vr.enabled);
+        assert.notOk(sceneEl.renderer.xr.enabled);
         done();
       });
     });
@@ -162,7 +168,7 @@ suite('a-scene (without renderer)', function () {
       var sceneEl = this.el;
       this.sinon.stub(sceneEl, 'checkHeadsetConnected').returns(true);
       sceneEl.enterVR().then(function () {
-        assert.ok(sceneEl.renderer.vr.enabled);
+        assert.ok(sceneEl.renderer.xr.enabled);
         done();
       });
     });
@@ -171,7 +177,7 @@ suite('a-scene (without renderer)', function () {
       var sceneEl = this.el;
       sceneEl.isMobile = true;
       sceneEl.enterVR().then(function () {
-        assert.ok(sceneEl.renderer.vr.enabled);
+        assert.ok(sceneEl.renderer.xr.enabled);
         done();
       });
     });
@@ -180,7 +186,7 @@ suite('a-scene (without renderer)', function () {
       var sceneEl = this.el;
       this.sinon.stub(sceneEl, 'checkHeadsetConnected').returns(false);
       sceneEl.enterVR().then(function () {
-        assert.notOk(sceneEl.renderer.vr.enabled);
+        assert.notOk(sceneEl.renderer.xr.enabled);
         done();
       });
     });
@@ -205,12 +211,12 @@ suite('a-scene (without renderer)', function () {
       var sceneEl = this.el;
       var fullscreenSpy;
 
-      if (sceneEl.canvas.mozRequestFullScreen) {
+      if (sceneEl.canvas.requestFullscreen) {
+        fullscreenSpy = this.sinon.spy(sceneEl.canvas, 'requestFullscreen');
+      } else if (sceneEl.canvas.mozRequestFullScreen) {
         fullscreenSpy = this.sinon.spy(sceneEl.canvas, 'mozRequestFullScreen');
       } else if (sceneEl.canvas.webkitRequestFullScreen) {
         fullscreenSpy = this.sinon.spy(sceneEl.canvas, 'webkitRequestFullscreen');
-      } else {
-        fullscreenSpy = this.sinon.spy(sceneEl.canvas, 'requestFullscreen');
       }
 
       this.sinon.stub(sceneEl, 'checkHeadsetConnected').returns(false);
@@ -235,11 +241,15 @@ suite('a-scene (without renderer)', function () {
       sceneEl.canvas = document.createElement('canvas');
 
       // Stub renderer.
-      sceneEl.renderer = {vr: {
-        getDevice: function () {},
-        setDevice: function () {},
-        setPoseTarget: function () {}
-      }};
+      sceneEl.renderer = {
+        xr: {
+          getDevice: function () {},
+          setDevice: function () {},
+          setPoseTarget: function () {}
+        },
+        setPixelRatio: function () {},
+        setSize: function () {}
+      };
 
       sceneEl.addState('vr-mode');
     });
@@ -257,7 +267,7 @@ suite('a-scene (without renderer)', function () {
       var sceneEl = this.el;
       this.sinon.stub(sceneEl, 'checkHeadsetConnected').returns(true);
       sceneEl.exitVR().then(function () {
-        assert.notOk(sceneEl.renderer.vr.enabled);
+        assert.notOk(sceneEl.renderer.xr.enabled);
         done();
       });
     });
@@ -266,18 +276,18 @@ suite('a-scene (without renderer)', function () {
       var sceneEl = this.el;
       sceneEl.isMobile = true;
       sceneEl.exitVR().then(function () {
-        assert.notOk(sceneEl.renderer.vr.enabled);
+        assert.notOk(sceneEl.renderer.xr.enabled);
         done();
       });
     });
 
     test('does not call exitPresent on desktop without a headset', function (done) {
       var sceneEl = this.el;
-      sceneEl.renderer.vr.enabled = true;
+      sceneEl.renderer.xr.enabled = true;
       sceneEl.isMobile = false;
       this.sinon.stub(sceneEl, 'checkHeadsetConnected').returns(false);
       sceneEl.exitVR().then(function () {
-        assert.ok(sceneEl.renderer.vr.enabled);
+        assert.ok(sceneEl.renderer.xr.enabled);
         done();
       });
     });
@@ -313,6 +323,20 @@ suite('a-scene (without renderer)', function () {
       var sceneEl = this.el;
       sceneEl.addEventListener('exit-vr', function () { done(); });
       sceneEl.exitVR();
+    });
+
+    test('reset xrSession to undefined', function () {
+      var sceneEl = this.el;
+      sceneEl.xrSession = {
+        removeEventListener: function () {},
+        end: function () { return Promise.resolve(); }
+      };
+      sceneEl.renderer.xr = {setSession: function () {}};
+      sceneEl.hasWebXR = true;
+      sceneEl.checkHeadsetConnected = function () { return true; };
+      assert.ok(sceneEl.xrSession);
+      sceneEl.exitVR();
+      assert.notOk(sceneEl.xrSession);
     });
   });
 
@@ -380,14 +404,14 @@ suite('a-scene (without renderer)', function () {
 
     setup(function () {
       sceneEl = this.el;
-      AScene.prototype.resize.restore();
       sceneEl.camera = { updateProjectionMatrix: function () {} };
       sceneEl.canvas = document.createElement('canvas');
       setSizeSpy = this.sinon.spy();
 
       // Stub renderer.
       sceneEl.renderer = {
-        vr: {
+        xr: {
+          isPresenting: function () { return true; },
           getDevice: function () { return {isPresenting: false}; },
           setDevice: function () {}
         },
@@ -401,7 +425,7 @@ suite('a-scene (without renderer)', function () {
     });
 
     test('resize renderer when in vr mode in fullscreen presentation (desktop, no headset)', function () {
-      sceneEl.renderer.vr.enabled = true;
+      sceneEl.renderer.xr.enabled = false;
       sceneEl.addState('vr-mode');
       sceneEl.resize();
       assert.ok(setSizeSpy.called);
@@ -417,8 +441,8 @@ suite('a-scene (without renderer)', function () {
     });
 
     test('does not resize renderer when in vr mode and presenting in a headset', function () {
-      sceneEl.renderer.vr.getDevice = function () { return {isPresenting: true}; };
-      sceneEl.renderer.vr.enabled = true;
+      sceneEl.renderer.xr.getDevice = function () { return {isPresenting: true}; };
+      sceneEl.renderer.xr.enabled = true;
       sceneEl.addState('vr-mode');
       sceneEl.resize();
 
@@ -592,7 +616,6 @@ helpers.getSkipCISuite()('a-scene (with renderer)', function () {
     var el;
     var self = this;
     AScene.prototype.setupRenderer.restore();
-    AScene.prototype.resize.restore();
     AScene.prototype.render.restore();
     el = self.el = document.createElement('a-scene');
     document.body.appendChild(el);

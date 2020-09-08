@@ -8,7 +8,7 @@ script below from the [jsdelivr CDN](https://www.jsdelivr.com/):
 ```html
 <html>
   <head>
-    <script src="https://cdn.jsdelivr.net/gh/aframevr/aframe@36182b33527a7a634e4c81bdd1dfe0420c7add1a/dist/aframe-master.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/gh/aframevr/aframe@1aac9e611981349852bd9a7dc6e005bc3c5a7680/dist/aframe-master.min.js"></script>
   </head>
   <body>
     <a-scene>
@@ -34,7 +34,7 @@ These master builds are unstable **bleeding-edge unstable builds** that contain
 newer fixes or features from the **master branch** on GitHub, but may contain
 regressions or breaking changes.
 
-If you're pointing to these builds via the [rawgit CDN](https://rawgit.com/),
+If you're pointing to these builds via the [jsDelivr CDN](https://www.jsdelivr.com/features#gh),
 we recommend locking it down to a commit hash rather than pointing directly at
 master such that your scene does not break unexpectedly.
 

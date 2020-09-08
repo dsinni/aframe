@@ -1,21 +1,81 @@
+var error = require('debug')('device:error');
+
 var vrDisplay;
+var supportsVRSession = false;
+var supportsARSession = false;
+
+/**
+ * Oculus Browser 7 doesn't support the WebXR gamepads module.
+ * We fallback to WebVR API and will hotfix when implementation is complete.
+ */
+var isWebXRAvailable = module.exports.isWebXRAvailable = !window.debug && navigator.xr !== undefined;
+
+// Catch vrdisplayactivate early to ensure we can enter VR mode after the scene loads.
+window.addEventListener('vrdisplayactivate', function (evt) {
+  var canvasEl;
+  // WebXR takes priority if available.
+  if (isWebXRAvailable) { return; }
+  canvasEl = document.createElement('canvas');
+  vrDisplay = evt.display;
+  // We need to make sure the canvas has a WebGL context associated with it.
+  // Otherwise, the requestPresent could be denied.
+  canvasEl.getContext('webgl', {});
+  // Request present immediately. a-scene will be allowed to enter VR without user gesture.
+  vrDisplay.requestPresent([{source: canvasEl}]).then(function () {}, function () {});
+});
 
 // Support both WebVR and WebXR APIs.
-if (navigator.xr) {
-  navigator.xr.requestDevice().then(function (device) {
-    device.supportsSession({immersive: true, exclusive: true}).then(function () {
-      vrDisplay = device;
-    });
-  });
+if (isWebXRAvailable) {
+  var updateEnterInterfaces = function () {
+    var sceneEl = document.querySelector('a-scene');
+    if (!sceneEl) {
+      window.addEventListener('DOMContentLoaded', updateEnterInterfaces);
+      return;
+    }
+    if (sceneEl.hasLoaded) {
+      sceneEl.components['vr-mode-ui'].updateEnterInterfaces();
+    } else {
+      sceneEl.addEventListener('loaded', updateEnterInterfaces);
+    }
+  };
+  var errorHandler = function (err) {
+    error('WebXR session support error: ' + err.message);
+  };
+  if (navigator.xr.isSessionSupported) {
+    // Current WebXR spec uses a boolean-returning isSessionSupported promise
+    navigator.xr.isSessionSupported('immersive-vr').then(function (supported) {
+      supportsVRSession = supported;
+      updateEnterInterfaces();
+    }).catch(errorHandler);
+
+    navigator.xr.isSessionSupported('immersive-ar').then(function (supported) {
+      supportsARSession = supported;
+      updateEnterInterfaces();
+    }).catch(function () {});
+  } else if (navigator.xr.supportsSession) {
+    // Fallback for implementations that haven't updated to the new spec yet,
+    // the old version used supportsSession which is rejected for missing
+    // support.
+    navigator.xr.supportsSession('immersive-vr').then(function () {
+      supportsVRSession = true;
+      updateEnterInterfaces();
+    }).catch(errorHandler);
+    navigator.xr.supportsSession('immersive-ar').then(function () {
+      supportsARSession = true;
+      updateEnterInterfaces();
+    }).catch(function () {});
+  } else {
+    error('WebXR has neither isSessionSupported or supportsSession?!');
+  }
 } else {
   if (navigator.getVRDisplays) {
     navigator.getVRDisplays().then(function (displays) {
+      var sceneEl = document.querySelector('a-scene');
       vrDisplay = displays.length && displays[0];
+      if (sceneEl) { sceneEl.emit('displayconnected', {vrDisplay: vrDisplay}); }
     });
   }
 }
-
-module.exports.isWebXRAvailable = navigator.xr !== undefined;
 
 function getVRDisplay () { return vrDisplay; }
 module.exports.getVRDisplay = getVRDisplay;
@@ -23,21 +83,16 @@ module.exports.getVRDisplay = getVRDisplay;
 /**
  * Determine if a headset is connected by checking if a vrDisplay is available.
  */
-function checkHeadsetConnected () { return !!getVRDisplay(); }
+function checkHeadsetConnected () {
+  return supportsVRSession || supportsARSession || !!getVRDisplay();
+}
 module.exports.checkHeadsetConnected = checkHeadsetConnected;
 
-/**
- * Check for positional tracking.
- */
-function checkHasPositionalTracking () {
-  var vrDisplay = getVRDisplay();
-  if (isMobile() || isGearVR()) { return false; }
-  return vrDisplay && vrDisplay.capabilities.hasPosition;
-}
-module.exports.checkHasPositionalTracking = checkHasPositionalTracking;
+function checkARSupport () { return supportsARSession; }
+module.exports.checkARSupport = checkARSupport;
 
 /**
- * Checks if browser is mobile.
+ * Checks if browser is mobile and not stand-alone dedicated vr device.
  * @return {Boolean} True if mobile browser detected.
  */
 var isMobile = (function () {
@@ -49,6 +104,9 @@ var isMobile = (function () {
     }
     if (isIOS() || isTablet() || isR7()) {
       _isMobile = true;
+    }
+    if (isMobileVR()) {
+      _isMobile = false;
     }
   })(window.navigator.userAgent || window.navigator.vendor || window.opera);
 
@@ -71,18 +129,34 @@ function isIOS () {
 }
 module.exports.isIOS = isIOS;
 
-function isGearVR () {
-  return /SamsungBrowser.+Mobile VR/i.test(window.navigator.userAgent);
+function isMobileDeviceRequestingDesktopSite () {
+  return !isMobile() && !isMobileVR() && window.orientation !== undefined;
 }
-module.exports.isGearVR = isGearVR;
+module.exports.isMobileDeviceRequestingDesktopSite = isMobileDeviceRequestingDesktopSite;
 
 /**
- *  Detect Oculus Go device
+ *  Detect Oculus Browser (standalone headset)
  */
-function isOculusGo () {
-  return /Pacific Build.+OculusBrowser.+SamsungBrowser.+Mobile VR/i.test(window.navigator.userAgent);
+function isOculusBrowser () {
+  return /(OculusBrowser)/i.test(window.navigator.userAgent);
 }
-module.exports.isOculusGo = isOculusGo;
+module.exports.isOculusBrowser = isOculusBrowser;
+
+/**
+ *  Detect Firefox Reality (standalone headset)
+ */
+function isFirefoxReality () {
+  return /(Mobile VR)/i.test(window.navigator.userAgent);
+}
+module.exports.isFirefoxReality = isFirefoxReality;
+
+/**
+ *  Detect browsers in Stand-Alone headsets
+ */
+function isMobileVR () {
+  return isOculusBrowser() || isFirefoxReality();
+}
+module.exports.isMobileVR = isMobileVR;
 
 function isR7 () {
   return /R7 Build/.test(window.navigator.userAgent);
@@ -112,27 +186,3 @@ module.exports.isBrowserEnvironment = !!(!process || process.browser);
  * Check if running in node on the server.
  */
 module.exports.isNodeEnvironment = !module.exports.isBrowserEnvironment;
-
-/**
- * Update an Object3D pose if a polyfilled vrDisplay is present.
- */
-module.exports.PolyfillControls = function PolyfillControls (object) {
-  var frameData;
-  var vrDisplay = window.webvrpolyfill && window.webvrpolyfill.getPolyfillDisplays()[0];
-  if (window.VRFrameData) { frameData = new window.VRFrameData(); }
-  this.update = function () {
-    var pose;
-    if (!vrDisplay) { return; }
-    vrDisplay.getFrameData(frameData);
-    pose = frameData.pose;
-    if (pose.orientation !== null) {
-      object.quaternion.fromArray(pose.orientation);
-    }
-    if (pose.position !== null) {
-      object.position.fromArray(pose.position);
-    } else {
-      object.position.set(0, 0, 0);
-    }
-  };
-};
-

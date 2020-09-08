@@ -10,13 +10,12 @@ examples:
 ---
 
 [3loaders]: https://github.com/mrdoob/three.js/tree/dev/examples/js/loaders
-[COLLADA]: ../components/collada-model.md
 [ecsfind]: ./entity-component-system.md#where-to-find-components
 [glTF]: ../components/gltf-model.md
 [OBJ]: ../components/obj-model.md
 [recommend using glTF]: ../components/gltf-model.md#why-use-gltf
 
-A-Frame provides components for loading [glTF], [OBJ], [COLLADA]. We [recommend
+A-Frame provides components for loading [glTF] and [OBJ]. We [recommend
 using glTF] if possible as glTF gains adoption as the standard for transmitting
 3D models over the Web. Components can be written to handle any file format,
 specifically any format that has a [three.js loader][3loaders]. We can also try
@@ -86,21 +85,21 @@ See this live example of [modifying material of a loaded model][modify].
 
 ```html
 <script>
-	AFRAME.registerComponent('modify-materials', {
-		init: function () {
-			// Wait for model to load.
-			this.el.addEventListener('model-loaded', () => {
-				// Grab the mesh / scene.
-				const obj = this.el.getObject3D('mesh');
-				// Go over the submeshes and modify materials we want.
-				obj.traverse(node => {
-					if (node.name.indexOf('ship') !== -1) {
-						node.material.color.set('red');
-					}
-				});
-			});
-		}
-	});
+  AFRAME.registerComponent('modify-materials', {
+    init: function () {
+      // Wait for model to load.
+      this.el.addEventListener('model-loaded', () => {
+        // Grab the mesh / scene.
+        const obj = this.el.getObject3D('mesh');
+        // Go over the submeshes and modify materials we want.
+        obj.traverse(node => {
+          if (node.name.indexOf('ship') !== -1) {
+            node.material.color.set('red');
+          }
+        });
+      });
+    }
+  });
 </script>
 
 <a-scene background="color: #ECECEC">
